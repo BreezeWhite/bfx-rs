@@ -6,6 +6,7 @@ authors = ["BreezeWhite, <miyashita2010@tuta.io>"]
 description = "Bitfinex API library, with convenient CLI tool"
 license = "MIT"
 repository = "https://github.com/BreezeWhite/bfx-rs"
+readme = "README.md"
 
 [dependencies]
 chrono = { version = "0.4.41", features = ["serde"] }
