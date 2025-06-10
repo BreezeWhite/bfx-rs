@@ -2,7 +2,7 @@
 
 use chrono::{DateTime, Local};
 use clap::builder::PossibleValuesParser;
-use clap::{value_parser, Parser, Subcommand};
+use clap::{Parser, Subcommand, value_parser};
 
 use crate::client::Client;
 use crate::utils::resolve_env_path_or_create;
@@ -146,6 +146,7 @@ enum FundingAction {
         end: Option<DateTime<Local>>,
     },
     // --- Authenticated actions --- ///
+    /// Submit a new funding offer
     Submit {
         /// Symbol to offer funding for (e.g., "fUSD", "fBTC").
         symbol: String,
@@ -177,22 +178,27 @@ enum FundingAction {
         )]
         order_type: Option<String>,
     },
+    /// Cancels an existing Funding Offer based on the offer ID entered.
     Cancel {
         /// ID of the funding offer to cancel.
         id: u64,
     },
+    /// Cancel all of your current funding offers of a specific symbol.
     CancelAll {
         /// Symbol to get the funding credit for (e.g., "fUSD", "fBTC").
         symbol: String,
     },
+    /// Get active funding offers.
     Offers {
         /// Symbol to get the funding credit for (e.g., "fUSD", "fBTC").
         symbol: String,
     },
+    /// Funds used in active positions
     Credits {
         /// Symbol to get the funding credit for (e.g., "fUSD", "fBTC").
         symbol: String,
     },
+    /// Get past inactive funding offers.
     HistOffers {
         /// Symbol to get the funding credit for (e.g., "fUSD", "fBTC").
         symbol: String,
@@ -217,6 +223,7 @@ enum FundingAction {
         )]
         end: Option<DateTime<Local>>,
     },
+    /// Inactive funds used in positions.
     HistCredits {
         /// Symbol to get the funding credit for (e.g., "fUSD", "fBTC").
         symbol: String,
