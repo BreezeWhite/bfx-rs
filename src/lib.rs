@@ -5,4 +5,4 @@ mod deserializer;
 mod error;
 mod funding;
 mod trading;
-mod utils;
+pub mod utils;
