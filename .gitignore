@@ -1,3 +1,4 @@
 target/
+test_proj/
 .bfx_cli.env
 report.*
