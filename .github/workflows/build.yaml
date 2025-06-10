@@ -1,0 +1,75 @@
+name: Build Rust Project
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache Cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-index-
+
+      - name: Build project
+        run: cargo build --release --features cli
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.os }}
+          path: |
+            target/release/bfx
+            target/release/bfx.exe
+
+  release:
+    name: Publish Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Donwload build artifacts
+        uses: actions/download-artifact@v4
+      - name: Display structure of downloaded files and modify path
+        run: |
+          ls -R
+          mv build-ubuntu-22.04/bfx bfx-linux
+          mv build-macos-latest/bfx bfx-macos
+          mv build-windows-latest/bfx.exe bfx-windows.exe
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            bfx-linux
+            bfx-macos
+            bfx-windows.exe
