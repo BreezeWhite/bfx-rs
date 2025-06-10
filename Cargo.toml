@@ -1,8 +1,11 @@
 [package]
 name = "bfx"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 authors = ["BreezeWhite, <miyashita2010@tuta.io>"]
+description = "Bitfinex API library, with convenient CLI tool"
+license = "MIT"
+repository = "https://github.com/BreezeWhite/bfx-rs"
 
 [dependencies]
 chrono = { version = "0.4.41", features = ["serde"] }
