@@ -1,5 +1,9 @@
 # Bitfinex API Library & CLI Tool (Rust)
 
+[![Crates.io](https://img.shields.io/crates/v/bfx.svg)](https://crates.io/crates/bfx)
+[![Crates.io Downloads](https://img.shields.io/crates/d/bfx.svg)](https://crates.io/crates/bfx)
+[![Docs.rs](https://docs.rs/bfx/badge.svg)](https://docs.rs/bfx)
+
 A fully asynchronous Rust library and CLI for accessing the [Bitfinex V2 API](https://docs.bitfinex.com/reference).
 
 - Async-first: Non-blocking, efficient API calls.
