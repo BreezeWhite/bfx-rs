@@ -1,0 +1,28 @@
+[package]
+name = "bfx"
+version = "0.1.0"
+edition = "2024"
+authors = ["BreezeWhite, <miyashita2010@tuta.io>"]
+
+[dependencies]
+chrono = { version = "0.4.41", features = ["serde"] }
+clap = { version = "4.5.39", features = ["derive"], optional = true }
+dotenv = { version = "0.15.0", optional = true }
+hex = "0.4.3"
+reqwest = { version = "0.12.19", features = [
+    "json",
+    "default-tls",
+], default-features = false }
+ring = "0.17.14"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+tokio = { version = "1.45.1", default-features = false }
+
+[features]
+cli = ["clap", "dotenv"]
+default = ["cli"]
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
