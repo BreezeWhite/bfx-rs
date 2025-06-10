@@ -1,7 +1,7 @@
 [package]
 name = "bfx"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 authors = ["BreezeWhite, <miyashita2010@tuta.io>"]
 
 [dependencies]
@@ -26,3 +26,5 @@ default = ["cli"]
 lto = true
 codegen-units = 1
 panic = "abort"
+strip = true
+opt-level = "z"

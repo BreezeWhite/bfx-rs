@@ -2,7 +2,7 @@ use std::convert::{From, Into};
 
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, from_str, json};
+use serde_json::{from_str, json, Value};
 
 use crate::{
     client::Client,
@@ -32,7 +32,7 @@ pub enum TradingOrderType {
 
 impl From<&str> for TradingOrderType {
     fn from(value: &str) -> Self {
-        match value.to_uppercase().as_str() {
+        match value.to_uppercase().replace("-", "").as_str() {
             "LIMIT" => TradingOrderType::Limit,
             "EXCHANGE LIMIT" => TradingOrderType::ExchangeLimit,
             "MARKET" => TradingOrderType::Market,
@@ -41,7 +41,7 @@ impl From<&str> for TradingOrderType {
             "EXCHANGE STOP" => TradingOrderType::ExchangeStop,
             "STOP LIMIT" => TradingOrderType::StopLimit,
             "EXCHANGE STOP LIMIT" => TradingOrderType::ExchangeStopLimit,
-            "TRAILINGSTOP" => TradingOrderType::TrailingStop,
+            "TRAILING STOP" => TradingOrderType::TrailingStop,
             "EXCHANGE TRAILING STOP" => TradingOrderType::ExchangeTrailingStop,
             "FOK" => TradingOrderType::Fok,
             "EXCHANGE FOK" => TradingOrderType::ExchangeFok,
@@ -69,7 +69,7 @@ impl std::fmt::Display for TradingOrderType {
             TradingOrderType::ExchangeStop => write!(f, "EXCHANGE STOP"),
             TradingOrderType::StopLimit => write!(f, "STOP LIMIT"),
             TradingOrderType::ExchangeStopLimit => write!(f, "EXCHANGE STOP LIMIT"),
-            TradingOrderType::TrailingStop => write!(f, "TRAILINGSTOP"),
+            TradingOrderType::TrailingStop => write!(f, "TRAILING STOP"),
             TradingOrderType::ExchangeTrailingStop => write!(f, "EXCHANGE TRAILING STOP"),
             TradingOrderType::Fok => write!(f, "FOK"),
             TradingOrderType::ExchangeFok => write!(f, "EXCHANGE FOK"),
@@ -376,14 +376,14 @@ impl Client {
         &self,
         symbol: &str,
         order_type: TradingOrderType,
-        amount: String,
-        price: String,
+        amount: &str,
+        price: &str,
         lev: Option<u32>,
         price_trailing: Option<String>,  // Only for trailing stop
         price_aux_limit: Option<String>, // Only for stop limit
         price_oco_stop: Option<String>,  // Only for stop
         gid: Option<u32>,                // Group ID
-        cid: Option<u32>,                // Client ID
+        cid: Option<u32>,                // Client Order ID
         flags: Option<u32>,              // The sum of all order flags
         time_in_force: Option<String>,   // 2020-01-15 10:45:23
     ) -> Result<Vec<TradingOrder>, BitfinexError> {

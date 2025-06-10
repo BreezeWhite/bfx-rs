@@ -2,19 +2,26 @@
 
 use chrono::{DateTime, Local};
 use clap::builder::PossibleValuesParser;
-use clap::{Parser, Subcommand, value_parser};
+use clap::{value_parser, Parser, Subcommand};
 
 use crate::client::Client;
 use crate::utils::resolve_env_path_or_create;
 
-/// Bitfinex API CLI
+/// A convenient CLI tool for Bitfinex
 #[derive(Parser)]
-#[command(author, version, about)]
-struct Cli {
-    /// Increase output verbosity
-    #[arg(short, long, global = true)]
-    verbose: bool,
+#[command(
+    author,
+    version,
+    help_template = "\
+{before-help}
+{about-with-newline}
+Version: {version}
+Author: {author-with-newline}
+{usage-heading} {usage}
 
+{all-args}{after-help}"
+)]
+struct Cli {
     #[command(subcommand)]
     command: Commands,
 }
@@ -39,6 +46,7 @@ enum Commands {
     },
 }
 
+/// Funding-related utilities
 #[derive(Subcommand)]
 enum FundingAction {
     // --- Public actions --- ///
@@ -56,6 +64,8 @@ enum FundingAction {
         )]
         precision: u8,
     },
+    /// Get raw book content
+    RawBook { symbol: String },
     /// Get current funding ticker.
     Ticker { symbol: String },
     /// Get public funding candle data.
@@ -233,6 +243,7 @@ enum FundingAction {
     },
 }
 
+/// User-related utilities
 #[derive(Subcommand)]
 enum AuthAction {
     /// Get current user information.
@@ -289,6 +300,7 @@ enum AuthAction {
     },
 }
 
+/// Public endpoints that does not related to trading nor funding
 #[derive(Subcommand)]
 enum PublicAction {
     /// Get various statistics on a specified trading pair or funding currency.
@@ -353,8 +365,11 @@ enum PublicAction {
     AvailCurrencies,
 }
 
+/// Trading/exchange related utilities
 #[derive(Subcommand)]
 enum TradingAction {
+    // --- Public Actions --- //
+    /// Get aggregated book content
     Book {
         /// Symbol to get the order book for.
         symbol: String,
@@ -368,9 +383,11 @@ enum TradingAction {
         )]
         precision: u8,
     },
-    Ticker {
-        symbol: String,
-    },
+    /// Get raw book content
+    RawBook { symbol: String },
+    /// Get current tick of symbol
+    Ticker { symbol: String },
+    /// Get candles of symbol
     Candles {
         symbol: String,
 
@@ -403,6 +420,7 @@ enum TradingAction {
         )]
         end: Option<DateTime<Local>>,
     },
+    /// Get public trades records
     Trades {
         /// Symbol to get trades for.
         symbol: String,
@@ -428,14 +446,221 @@ enum TradingAction {
         )]
         end: Option<DateTime<Local>>,
     },
+    // --- Authenticated Actions --- //
+    /// Gets all the current user's active orders.
+    Orders {
+        #[arg(short, long, help = "Specify symbol for fetching orders")]
+        symbol: Option<String>,
+
+        #[arg(short, long, help = "Group ID of target orders")]
+        group_id: Option<u64>,
+
+        #[arg(
+            short,
+            long,
+            help = "Client ID of target orders. If specified, --client-id-date is also required."
+        )]
+        client_id: Option<String>,
+
+        #[arg(
+            short = 'd',
+            long,
+            value_name = "YYYY-MM-DD",
+            help = "Filter based on --client-id."
+        )]
+        client_id_date: Option<String>,
+    },
+    /// Retrieves all user's closed/cancelled orders up to 2 weeks in the past.
+    HistOrders {
+        #[arg(short, long, help = "Symbol to filter orders")]
+        symbol: Option<String>,
+
+        #[arg(
+            short,
+            long,
+            default_value="10",
+            value_parser = value_parser!(u16).range(1..=2500),
+            help = "Number limit of orders"
+        )]
+        limit: Option<u16>,
+
+        #[arg(
+            long,
+            help = "Start time for the orders in ISO 8601 format (e.g., 2025-01-01T00:00:00Z)."
+        )]
+        start: Option<DateTime<Local>>,
+
+        #[arg(
+            long,
+            help = "End time for the orders in ISO 8601 format (e.g., 2025-01-01T00:00:00Z)."
+        )]
+        end: Option<DateTime<Local>>,
+    },
+    /// Submits an order on a trading pair (e.g. tBTCUSD, tLTCBTC, ...).
+    Submit {
+        symbol: String,
+
+        #[arg(
+            short,
+            long,
+            default_value = "exchange-limit",
+            value_parser = PossibleValuesParser::new([
+                "limit", "exchange-limit", "market", "exchange-market", "stop",
+                "exchange-stop", "stop-limit", "exchange-stop-limit", "trailing-stop",
+                "exchange-trailing-stop", "fok", "exchange-fok", "ioc", "exchange-ioc"
+            ]),
+            help = "Type order to submit",
+        )]
+        order_type: String,
+
+        #[arg(
+            short,
+            long,
+            required = true,
+            help = "Amount of unit to submit (positive for buy, negative for sell)."
+        )]
+        amount: String,
+
+        #[arg(short, long, required = true, help = "Price for each unit")]
+        price: String,
+
+        #[arg(
+            long,
+            default_value = "10",
+            value_parser = value_parser!(u32).range(1..=100),
+            help = "The leverage for a derivative order, supported by derivative symbol orders only."
+        )]
+        lev: Option<u32>,
+
+        #[arg(long, help = "The trailing price for a trailing stop order.")]
+        price_trailing: Option<String>,
+
+        #[arg(long, help = "Auxiliary Limit price (only for STOP LIMIT).")]
+        price_aux_limit: Option<String>,
+
+        #[arg(long, help = "One-Cancels-Other stop price.")]
+        price_oco_stop: Option<String>,
+
+        #[arg(short, long, help = "Group ID for the order.")]
+        gid: Option<u32>,
+
+        #[arg(
+            short,
+            long,
+            help = "Client Order ID; should be unique in the day (UTC+0)."
+        )]
+        cid: Option<u32>,
+
+        #[arg(
+            long,
+            help = "The sum of all order flags. See: https://docs.bitfinex.com/docs/flag-values"
+        )]
+        flags: Option<u32>,
+
+        #[arg(
+            long,
+            value_name = "YYYY-MM-DD hh:mm:ss",
+            help = "Datetime for automatic order cancellation"
+        )]
+        time_in_force: Option<String>,
+    },
+    /// Updates an existing order, can be used to update margin, exchange, and derivative orders.
+    Update {
+        /// ID of the order.
+        id: u64,
+
+        #[arg(
+            short,
+            long,
+            required = true,
+            help = "Amount of unit to submit (positive for buy, negative for sell)."
+        )]
+        amount: Option<String>,
+
+        #[arg(short, long, required = true, help = "Price for each unit")]
+        price: Option<String>,
+
+        #[arg(long, help = "The delta to apply to the amount value.")]
+        delta: Option<String>,
+
+        #[arg(
+            long,
+            default_value = "10",
+            value_parser = value_parser!(u32).range(1..=100),
+            help = "The leverage for a derivative order, supported by derivative symbol orders only."
+        )]
+        lev: Option<u32>,
+
+        #[arg(long, help = "The trailing price for a trailing stop order.")]
+        price_trailing: Option<String>,
+
+        #[arg(long, help = "Auxiliary Limit price (only for STOP LIMIT).")]
+        price_aux_limit: Option<String>,
+
+        #[arg(short, long, help = "Group ID for the order.")]
+        gid: Option<u32>,
+
+        #[arg(
+            short,
+            long,
+            help = "Client Order ID; should be unique in the day (UTC+0)."
+        )]
+        cid: Option<u64>,
+
+        #[arg(long, value_name = "YYYY-MM-DD", help = "Date of Client Order ID.")]
+        cid_date: Option<String>,
+
+        #[arg(
+            long,
+            help = "The sum of all order flags. See: https://docs.bitfinex.com/docs/flag-values"
+        )]
+        flags: Option<u32>,
+
+        #[arg(
+            long,
+            value_name = "YYYY-MM-DD hh:mm:ss",
+            help = "Datetime for automatic order cancellation"
+        )]
+        time_in_force: Option<String>,
+    },
+    /// Cancels one of the current user's orders.
+    Cancel {
+        #[arg(short, long, help = "ID of the order.")]
+        id: Option<u64>,
+
+        #[arg(
+            short,
+            long,
+            help = "Client Order ID; should be unique in the day (UTC+0)."
+        )]
+        cid: Option<u64>,
+
+        #[arg(long, value_name = "YYYY-MM-DD", help = "Date of Client Order ID.")]
+        cid_date: Option<String>,
+    },
+    /// Cancels all of the current user's orders, including derivative.
+    CancelAll,
 }
 
-fn get_client_with_key() -> Client {
+fn load_key() -> (String, String) {
+    // Try to load from env var
+    let api_key = std::env::var("API_KEY").ok();
+    let api_secret = std::env::var("API_SECRET").ok();
+    if api_key.is_some() && api_secret.is_some() {
+        return (api_key.unwrap(), api_secret.unwrap());
+    }
+
+    // Load from .env file
     let env_path = resolve_env_path_or_create();
     dotenv::from_path(env_path).expect("Failed to load .env file");
 
     let api_key = std::env::var("API_KEY").unwrap();
     let api_secret = std::env::var("API_SECRET").unwrap();
+    (api_key, api_secret)
+}
+
+fn get_client_with_key() -> Client {
+    let (api_key, api_secret) = load_key();
     Client::new(api_key, api_secret)
 }
 
@@ -557,6 +782,10 @@ async fn process_funding_action(action: &FundingAction) {
                 .unwrap();
             pretty_print_json(&book);
         }
+        FundingAction::RawBook { symbol } => {
+            let book = get_client().request_funding_book_raw(symbol).await.unwrap();
+            pretty_print_json(&book);
+        }
         FundingAction::Ticker { symbol } => {
             let ticker = get_client().request_funding_ticker(symbol).await.unwrap();
             pretty_print_json(&ticker);
@@ -676,6 +905,10 @@ async fn process_trading_action(action: &TradingAction) {
                 .unwrap();
             pretty_print_json(&book);
         }
+        TradingAction::RawBook { symbol } => {
+            let book = get_client().request_trading_book_raw(symbol).await.unwrap();
+            pretty_print_json(&book);
+        }
         TradingAction::Ticker { symbol } => {
             let ticker = get_client().request_trading_ticker(symbol).await.unwrap();
             pretty_print_json(&ticker);
@@ -711,6 +944,122 @@ async fn process_trading_action(action: &TradingAction) {
                 .await
                 .unwrap();
             pretty_print_json(&trades);
+        }
+        TradingAction::Orders {
+            symbol,
+            group_id,
+            client_id,
+            client_id_date,
+        } => {
+            let orders = get_client_with_key()
+                .request_trading_orders(
+                    symbol.clone(),
+                    *group_id,
+                    client_id.clone(),
+                    client_id_date.clone(),
+                )
+                .await
+                .unwrap();
+            pretty_print_json(&orders);
+        }
+        TradingAction::HistOrders {
+            symbol,
+            limit,
+            start,
+            end,
+        } => {
+            let orders = get_client_with_key()
+                .request_trading_orders_hist(
+                    symbol.clone(),
+                    limit.clone(),
+                    start.clone(),
+                    end.clone(),
+                )
+                .await
+                .unwrap();
+            pretty_print_json(&orders);
+        }
+        TradingAction::Submit {
+            symbol,
+            order_type,
+            amount,
+            price,
+            lev,
+            price_trailing,
+            price_aux_limit,
+            price_oco_stop,
+            gid,
+            cid,
+            flags,
+            time_in_force,
+        } => {
+            let orders = get_client_with_key()
+                .submit_trading_order(
+                    symbol,
+                    order_type.as_str().into(),
+                    amount,
+                    price,
+                    lev.clone(),
+                    price_trailing.clone(),
+                    price_aux_limit.clone(),
+                    price_oco_stop.clone(),
+                    gid.clone(),
+                    cid.clone(),
+                    flags.clone(),
+                    time_in_force.clone(),
+                )
+                .await
+                .unwrap();
+            pretty_print_json(&orders);
+        }
+        TradingAction::Update {
+            id,
+            amount,
+            price,
+            delta,
+            lev,
+            price_trailing,
+            price_aux_limit,
+            gid,
+            cid,
+            cid_date,
+            flags,
+            time_in_force,
+        } => {
+            let order = get_client_with_key()
+                .update_trading_order(
+                    *id,
+                    amount.clone(),
+                    price.clone(),
+                    delta.clone(),
+                    lev.clone(),
+                    price_trailing.clone(),
+                    price_aux_limit.clone(),
+                    gid.clone(),
+                    cid.clone(),
+                    cid_date.clone(),
+                    flags.clone(),
+                    time_in_force.clone(),
+                )
+                .await
+                .unwrap();
+
+            pretty_print_json(&order);
+        }
+        TradingAction::Cancel { id, cid, cid_date } => {
+            let order = get_client_with_key()
+                .cancel_trading_order(id.clone(), cid.clone(), cid_date.clone())
+                .await
+                .unwrap();
+
+            pretty_print_json(&order);
+        }
+        TradingAction::CancelAll => {
+            let orders = get_client_with_key()
+                .cancel_trading_order_all()
+                .await
+                .unwrap();
+            pretty_print_json(&orders);
         }
     }
 }
