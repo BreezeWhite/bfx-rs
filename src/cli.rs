@@ -370,6 +370,40 @@ enum PublicAction {
 
     /// All available currencies on Bitfinex.
     AvailCurrencies,
+
+    /// Get the current status of the platform, “Operative” or “Maintenance”.
+    PlatformStatus,
+
+    /// Get derivatives pair status 
+    DerivStatus {
+        keys: String,
+    },
+
+    /// Get a list of the most recent funding data for the given currency.
+    FundingStats {
+        symbol: String,
+
+        #[arg(
+            short,
+            long,
+            default_value = "10",
+            value_parser = value_parser!(u16).range(1..=250),
+            help = "Total number of records to return",
+        )]
+        limit: Option<u16>,
+
+        #[arg(
+            long,
+            help = "Start time for the stats in ISO 8601 format (e.g., 2025-01-01T00:00:00Z)."
+        )]
+        start: Option<DateTime<Local>>,
+
+        #[arg(
+            long,
+            help = "End time for the stats in ISO 8601 format (e.g., 2025-01-01T00:00:00Z)."
+        )]
+        end: Option<DateTime<Local>>,
+    }
 }
 
 /// Trading/exchange related utilities
@@ -735,6 +769,18 @@ async fn process_public_action(action: &PublicAction) {
         PublicAction::AvailCurrencies => {
             let currencies = client.request_avail_ccy_list().await.unwrap();
             pretty_print_json(&currencies);
+        }
+        PublicAction::PlatformStatus => {
+            let status = client.request_platform_status().await.unwrap();
+            pretty_print_json(&status);
+        }
+        PublicAction::DerivStatus { keys } => {
+            let status = client.request_deriv_status(keys).await.unwrap();
+            pretty_print_json(&status);
+        }
+        PublicAction::FundingStats { symbol, limit, start, end } => {
+            let stats = client.request_funding_stats(symbol, limit.clone(), start.clone(), end.clone()).await.unwrap();
+            pretty_print_json(&stats);
         }
     }
 }

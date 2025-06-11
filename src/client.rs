@@ -256,6 +256,97 @@ pub struct DepositAddressResult {
     pub status: String,
     pub message: Option<String>,
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct PlatformStatus {
+    #[serde(deserialize_with = "int_to_bool")]
+    pub status: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct FundingStats {
+    #[serde[deserialize_with = "from_mts"]]
+    pub time: DateTime<Local>,
+
+    #[serde(skip_serializing)]
+    _placeholder_1: Option<String>,
+    #[serde(skip_serializing)]
+    _placeholder_2: Option<String>,
+
+    pub frr: f64,
+    pub avg_period: f64,
+    
+    #[serde(skip_serializing)]
+    _placeholder_3: Option<String>,
+    #[serde(skip_serializing)]
+    _placeholder_4: Option<String>,
+
+    pub funding_amount: f64,
+    pub funding_amount_used: f64,
+    
+    #[serde(skip_serializing)]
+    _placeholder_5: Option<String>,
+    #[serde(skip_serializing)]
+    _placeholder_6: Option<String>,
+
+    pub funding_below_threshold: f64,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct DerivativesStatus {
+    pub key: String,
+    #[serde(deserialize_with = "from_mts")]
+    pub time: DateTime<Local>,
+
+    #[serde(skip_serializing)]
+    _placeholder_1: Option<String>,
+
+    pub deriv_price: f64,
+    pub spot_price: f64,
+    
+    #[serde(skip_serializing)]
+    _placeholder_2: Option<String>,
+
+    pub insurance_fund_balance: f64,
+
+    #[serde(skip_serializing)]
+    _placeholder_3: Option<String>,
+
+    #[serde(deserialize_with = "from_mts")]
+    pub next_funding_evt_time: DateTime<Local>,
+    pub next_funding_accrued: f64,
+    pub next_funding_step: u64,
+    
+    #[serde(skip_serializing)]
+    _placeholder_4: Option<String>,
+
+    pub current_funding: f64,
+    
+    #[serde(skip_serializing)]
+    _placeholder_5: Option<String>,
+    #[serde(skip_serializing)]
+    _placeholder_6: Option<String>,
+
+    pub mark_price: f64,
+
+    #[serde(skip_serializing)]
+    _placeholder_7: Option<String>,
+    #[serde(skip_serializing)]
+    _placeholder_8: Option<String>,
+
+    pub open_interest: f64,
+    
+    #[serde(skip_serializing)]
+    _placeholder_9: Option<String>,
+    #[serde(skip_serializing)]
+    _placeholder_10: Option<String>,
+    #[serde(skip_serializing)]
+    _placeholder_11: Option<String>,
+
+    pub clamp_min: f64,
+    pub clamp_max: f64,
+}
+
 // --- Enums --- //
 pub enum LedgerType {
     Exchange = 5,
@@ -700,6 +791,45 @@ impl Client {
         let body = self.get(&url).await?;
         let stats: Vec<Stat> = from_str(&body).unwrap();
         Ok(stats)
+    }
+
+    pub async fn request_platform_status(&self) -> Result<PlatformStatus, BitfinexError> {
+        let body = self.get(&String::from("platform/status")).await?;
+        let res: PlatformStatus = from_str(&body).unwrap();
+        Ok(res)
+    }
+
+    pub async fn request_funding_stats(
+        &self,
+        symbol: &str,
+        limit: Option<u16>, // Max 250
+        start: Option<DateTime<Local>>,
+        end: Option<DateTime<Local>>,
+    ) -> Result<Vec<FundingStats>, BitfinexError> {
+        let mut url = format!("funding/stats/{symbol}/hist?");
+
+        if let Some(limit) = limit {
+            // max 250
+            url = format!("{url}&limit={limit}");
+        }
+        if let Some(start) = start {
+            url = format!("{url}&start={}", start.timestamp_millis());
+        }
+        if let Some(end) = end {
+            url = format!("{url}&end={}", end.timestamp_millis());
+        }
+
+        let body = self.get(&url).await?;
+        let stats: Vec<FundingStats> = from_str(&body).unwrap();
+        Ok(stats)
+    }
+
+    /// keys: comma seprated paris (e.g. tBTCF0:USTF0,tETHF0:USTF0). 'ALL' for all pairs.
+    pub async fn request_deriv_status(&self, keys: &str) -> Result<Vec<DerivativesStatus>, BitfinexError> {
+        let url = format!("status/deriv?keys={keys}");
+        let body = self.get(&url).await?;
+        let sts: Vec<DerivativesStatus> = from_str(&body).unwrap();
+        Ok(sts)
     }
 
     // --- Authenticated APIs --- //
