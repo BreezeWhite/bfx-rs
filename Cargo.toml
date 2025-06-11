@@ -1,6 +1,6 @@
 [package]
 name = "bfx"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 authors = ["BreezeWhite, <miyashita2010@tuta.io>"]
 description = "Bitfinex API library, with convenient CLI tool"
