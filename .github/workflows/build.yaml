@@ -2,6 +2,8 @@ name: Build Rust Project
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*"
 
@@ -53,10 +55,16 @@ jobs:
             target/release/bfx
             target/release/bfx.exe
 
+  crate:
+    name: Publish to Rust Crate
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
       - name: Publish to Crate
         env:
           CRATE_TOKEN: ${{ secrets.RUST_CRATE_TOKEN }}
         run: |
+          echo "The token is $CRATE_TOKEN"
           cargo login $CRATE_TOKEN
           cargo publish
 
