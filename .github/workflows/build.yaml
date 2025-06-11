@@ -53,6 +53,13 @@ jobs:
             target/release/bfx
             target/release/bfx.exe
 
+      - name: Publish to Crate
+        env:
+          CRATE_TOKEN: ${{ secrets.RUST_CRATE_TOKEN }}
+        run: |
+          cargo login $CRATE_TOKEN
+          cargo publish
+
   release:
     name: Publish Release
     needs: build
