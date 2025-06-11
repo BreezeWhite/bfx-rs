@@ -2,6 +2,8 @@ name: Build Rust Project
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*"
 
@@ -18,7 +20,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
 
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
@@ -58,6 +60,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Publish to Crate
         env:
           CRATE_TOKEN: ${{ secrets.RUST_CRATE_TOKEN }}
