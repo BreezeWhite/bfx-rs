@@ -341,6 +341,10 @@ pub struct FundingOfferResult {
 // --- Funding Functions --- //
 impl Client {
     // --- Public Endpoints --- //
+    /// 1. The returned amount > 0 is for ask, amount < 0 is for bid.
+    /// 2. For `prec` level, from precise to less precise: 1 -> 4
+    /// 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-public-book#for-funding-currency-symbols-ex-fusd>
     pub async fn request_funding_book(
         &self,
         symbol: &str,
@@ -356,6 +360,7 @@ impl Client {
         Ok(books)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-public-book#for-funding-currency-symbols-ex-fusd-1>
     pub async fn request_funding_book_raw(
         &self,
         symbol: &str,
@@ -369,6 +374,7 @@ impl Client {
         Ok(books)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-public-trades#for-funding-currency-symbols-ex-fusd>
     pub async fn request_funding_trades(
         &self,
         symbol: &str,
@@ -395,6 +401,7 @@ impl Client {
         Ok(trades)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-public-tickers#for-funding-currency-symbols-ex-fusd>
     pub async fn request_funding_ticker(
         &self,
         symbol: &str,
@@ -408,6 +415,14 @@ impl Client {
         Ok(ticker)
     }
 
+    /// ## Aggregation Rules:
+    /// 1. `period` can only be multiply of `agg_period`
+    /// For example, if `agg_period` is A10, then `period` could only be 10, 20, 30, ..., etc.
+    /// 
+    /// 2. Set `agg_period` to `Nil` to not aggregate.
+    /// 3. Other than the above combinations, Bitfinex returns empty result.
+    /// 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-public-candles#funding-currency-candles>
     pub async fn request_funding_candles(
         &self,
         symbol: &str,
@@ -450,6 +465,7 @@ impl Client {
         Ok(candles)
     }
 
+    /// The default setup of candles in UI
     pub async fn request_funding_candles_default(
         &self,
         symbol: &str,
@@ -459,16 +475,8 @@ impl Client {
             .await
     }
 
-    pub async fn request_funding_candles_lending(
-        &self,
-        symbol: &str,
-    ) -> Result<Vec<Candle>, BitfinexError> {
-        // Wrapper of candles.
-        self.request_funding_candles(symbol, 120, 120.into(), "4h".into(), Some(4), None, None)
-            .await
-    }
-
     // --- Authenticated Endpoints --- //
+    /// Ref: <https://docs.bitfinex.com/reference/rest-auth-funding-credits>
     pub async fn request_funding_credits(
         &self,
         symbol: &str,
@@ -479,6 +487,7 @@ impl Client {
         Ok(orders)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-auth-funding-credits-hist>
     pub async fn request_funding_credits_hist(
         &self,
         symbol: &str,
@@ -503,6 +512,7 @@ impl Client {
         Ok(credits)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-auth-funding-offers>
     pub async fn request_funding_offers(
         &self,
         symbol: &str,
@@ -513,6 +523,7 @@ impl Client {
         Ok(orders)
     }
 
+    // Ref: <https://docs.bitfinex.com/reference/rest-auth-funding-offers-hist>
     pub async fn request_funding_offers_hist(
         &self,
         symbol: &str,
@@ -537,6 +548,7 @@ impl Client {
         Ok(offers)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-auth-submit-funding-offer>
     pub async fn submit_funding_offer(
         &self,
         symbol: &str,
@@ -563,6 +575,7 @@ impl Client {
         Ok(resp.offer)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-auth-cancel-funding-offer>
     pub async fn cancel_funding_offer(&self, offer_id: u64) -> Result<FundingOffer, BitfinexError> {
         let url = String::from("auth/w/funding/offer/cancel");
         let payload = json!({"id": offer_id}).to_string();
@@ -571,6 +584,7 @@ impl Client {
         Ok(resp.offer)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-auth-cancel-all-funding-offers>
     pub async fn cancel_funding_offer_all(&self, symbol: &str) {
         let url = String::from("auth/w/funding/offer/cancel/all");
         let ccy = parse_ccy_from_symbol(symbol);

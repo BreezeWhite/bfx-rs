@@ -700,6 +700,7 @@ impl Client {
     }
 
     // --- Public APIs --- //
+    /// Ref: <https://docs.bitfinex.com/reference/rest-public-foreign-exchange-rate>
     pub async fn request_exchange_rate(
         &self,
         ccy: &str,
@@ -712,6 +713,7 @@ impl Client {
         Ok(res[0])
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-public-conf>
     pub async fn request_avail_exchange_pairs(&self) -> Result<Vec<String>, BitfinexError> {
         let body = self
             .get(&String::from("conf/pub:list:pair:exchange"))
@@ -720,19 +722,31 @@ impl Client {
         Ok(res[0].to_owned())
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-public-conf>
     pub async fn request_avail_ccy_list(&self) -> Result<Vec<String>, BitfinexError> {
         let body = self.get(&String::from("conf/pub:list:currency")).await?;
         let res: Vec<Vec<String>> = from_str(&body).unwrap();
         Ok(res[0].to_owned())
     }
 
+    /// 1. `side_pair` is only available for key `credits.size.sym`.
+    /// 2. `use_short` is only available for key `pos.size`.
+    /// 3. For key `pos.size`, defaults to use long.
+    /// 4. `limit` is up to 10000.
+    /// 
+    /// **Funding-only keys**
+    /// funding.size / credits.size / credits.size.sym
+    /// **Trading-only keys**
+    /// pos.size
+    /// 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-public-stats>
     pub async fn request_stat(
         &self,
         symbol: &str,
         key: StatKey,
         side_pair: Option<String>, // Only for credits.size.sym. Default to tBTCUSD
         use_short: Option<bool>,   // Only for pos.size
-        limit: Option<u16>,
+        limit: Option<u16>, // Max 10000
         start: Option<DateTime<Local>>,
         end: Option<DateTime<Local>>,
     ) -> Result<Vec<Stat>, BitfinexError> {
@@ -793,12 +807,17 @@ impl Client {
         Ok(stats)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-public-platform-status>
     pub async fn request_platform_status(&self) -> Result<PlatformStatus, BitfinexError> {
         let body = self.get(&String::from("platform/status")).await?;
         let res: PlatformStatus = from_str(&body).unwrap();
         Ok(res)
     }
 
+    /// ## Parameters:
+    /// - `limit` is up to 250
+    /// 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-public-funding-stats>
     pub async fn request_funding_stats(
         &self,
         symbol: &str,
@@ -824,7 +843,10 @@ impl Client {
         Ok(stats)
     }
 
-    /// keys: comma seprated paris (e.g. tBTCF0:USTF0,tETHF0:USTF0). 'ALL' for all pairs.
+    /// ## Parameters:
+    /// - `keys`: comma seprated pairs (e.g. tBTCF0:USTF0,tETHF0:USTF0). 'ALL' for all pairs.
+    /// 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-public-derivatives-status>
     pub async fn request_deriv_status(&self, keys: &str) -> Result<Vec<DerivativesStatus>, BitfinexError> {
         let url = format!("status/deriv?keys={keys}");
         let body = self.get(&url).await?;
@@ -834,18 +856,21 @@ impl Client {
 
     // --- Authenticated APIs --- //
     // User-related API
+    /// Ref: <https://docs.bitfinex.com/reference/rest-auth-info-user>
     pub async fn request_user_info(&self) -> Result<User, BitfinexError> {
         let body = self.post_url(&String::from("auth/r/info/user")).await?;
         let user: User = from_str(&body).unwrap();
         Ok(user)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-auth-wallets>
     pub async fn request_wallets(&self) -> Result<Vec<Wallet>, BitfinexError> {
         let body = self.post_url(&String::from("auth/r/wallets")).await?;
         let wallets: Vec<Wallet> = from_str(&body).unwrap();
         Ok(wallets)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-auth-ledgers>
     pub async fn request_ledger(
         &self,
         ccy: &str,
@@ -871,6 +896,7 @@ impl Client {
         Ok(ledgers)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/key-permissions>
     pub async fn request_key_permission(&self) -> Result<KeyPermission, BitfinexError> {
         let body = self.post_url(&String::from("auth/r/permissions")).await?;
 
@@ -889,6 +915,7 @@ impl Client {
         Ok(permission)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-auth-deposit-address>
     pub async fn request_deposit_address(
         &self,
         wallet: WalletType,

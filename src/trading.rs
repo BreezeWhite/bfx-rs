@@ -243,6 +243,7 @@ pub struct TradingOrderResult {
 // --- Trading Functions --- //
 impl Client {
     // --- Public Endpoints --- //
+    /// Ref: <https://docs.bitfinex.com/reference/rest-public-book#for-trading-pair-symbols-ex-tbtcusd>
     pub async fn request_trading_book(
         &self,
         symbol: &str,
@@ -258,6 +259,7 @@ impl Client {
         Ok(books)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-public-book#response-fields-raw-books>
     pub async fn request_trading_book_raw(
         &self,
         symbol: &str,
@@ -271,6 +273,7 @@ impl Client {
         Ok(books)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-public-trades#for-trading-pair-symbols-ex-tbtcusd>
     pub async fn request_trading_trades(
         &self,
         symbol: &str,
@@ -297,6 +300,7 @@ impl Client {
         Ok(trades)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-public-ticker#response-fields-trading-pairs-ex-tbtcusd>
     pub async fn request_trading_ticker(
         &self,
         symbol: &str,
@@ -310,6 +314,7 @@ impl Client {
         Ok(ticker)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-public-candles#trading-pair-candles>
     pub async fn request_trading_candles(
         &self,
         symbol: &str,
@@ -341,6 +346,7 @@ impl Client {
     }
 
     // --- Authenticated Endpoints --- //
+    /// Ref: <https://docs.bitfinex.com/reference/rest-auth-retrieve-orders>
     pub async fn request_trading_orders(
         &self,
         symbol: Option<String>,
@@ -372,6 +378,7 @@ impl Client {
         Ok(orders)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-auth-submit-order>
     pub async fn submit_trading_order(
         &self,
         symbol: &str,
@@ -430,6 +437,7 @@ impl Client {
         Ok(result.orders)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-auth-update-order>
     pub async fn update_trading_order(
         &self,
         id: u64,
@@ -491,6 +499,7 @@ impl Client {
         Ok(result.order)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-auth-cancel-order>
     pub async fn cancel_trading_order(
         &self,
         id: Option<u64>,
@@ -521,6 +530,7 @@ impl Client {
         Ok(result.order)
     }
 
+    /// Ref: <https://docs.bitfinex.com/reference/rest-auth-cancel-orders-multiple>
     pub async fn cancel_trading_order_all(&self) -> Result<Vec<TradingOrder>, BitfinexError> {
         let url = String::from("auth/w/order/cancel/multi");
         let payload = json!({"all": 1}).to_string();
@@ -529,6 +539,9 @@ impl Client {
         Ok(result.orders)
     }
 
+    /// Ref:
+    /// - <https://docs.bitfinex.com/reference/rest-auth-orders-history>
+    /// - <https://docs.bitfinex.com/reference/rest-auth-orders-history-by-symbol>
     pub async fn request_trading_orders_hist(
         &self,
         symbol: Option<String>,
