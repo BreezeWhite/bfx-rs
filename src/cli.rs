@@ -762,15 +762,15 @@ async fn process_public_action(action: &PublicAction) {
         }
         PublicAction::AvailPairs => {
             let pairs = client.request_avail_exchange_pairs().await.unwrap();
-            pretty_print_json(&pairs);
+            pretty_print::print_vec_string("Available Pairs", &pairs);
         }
         PublicAction::AvailCurrencies => {
             let currencies = client.request_avail_ccy_list().await.unwrap();
-            pretty_print_json(&currencies);
+            pretty_print::print_vec_string("Available Currencies", &currencies);
         }
         PublicAction::PlatformStatus => {
             let status = client.request_platform_status().await.unwrap();
-            pretty_print_json(&status);
+            pretty_print::print_platform_status(&status);
         }
         PublicAction::DerivStatus { keys } => {
             let status = client.request_deriv_status(keys).await.unwrap();
@@ -847,7 +847,7 @@ async fn process_funding_action(action: &FundingAction) {
         }
         FundingAction::Ticker { symbol } => {
             let ticker = get_client().request_funding_ticker(symbol).await.unwrap();
-            pretty_print_json(&ticker);
+            pretty_print::print_funding_ticker(&ticker);
         }
         FundingAction::Candles {
             symbol,
@@ -900,14 +900,14 @@ async fn process_funding_action(action: &FundingAction) {
                 .submit_funding_offer(symbol, *amount, *rate, *period, order_type.into())
                 .await
                 .unwrap();
-            pretty_print_json(&result);
+            pretty_print::print_funding_offer(&vec![result]);
         }
         FundingAction::Cancel { id } => {
             let result = get_client_with_key()
                 .cancel_funding_offer(*id)
                 .await
                 .unwrap();
-            pretty_print_json(&result);
+            pretty_print::print_funding_offer(&vec![result]);
         }
         FundingAction::CancelAll { symbol } => {
             get_client_with_key().cancel_funding_offer_all(symbol).await;
@@ -970,7 +970,7 @@ async fn process_trading_action(action: &TradingAction) {
         }
         TradingAction::Ticker { symbol } => {
             let ticker = get_client().request_trading_ticker(symbol).await.unwrap();
-            pretty_print_json(&ticker);
+            pretty_print::print_trading_ticker(&ticker);
         }
         TradingAction::Candles {
             symbol,
@@ -1103,7 +1103,7 @@ async fn process_trading_action(action: &TradingAction) {
                 .await
                 .unwrap();
 
-            pretty_print_json(&order);
+            pretty_print::print_trading_order(&vec![order]);
         }
         TradingAction::Cancel { id, cid, cid_date } => {
             let order = get_client_with_key()
@@ -1111,7 +1111,7 @@ async fn process_trading_action(action: &TradingAction) {
                 .await
                 .unwrap();
 
-            pretty_print_json(&order);
+            pretty_print::print_trading_order(&vec![order]);
         }
         TradingAction::CancelAll => {
             let orders = get_client_with_key()
@@ -1132,18 +1132,34 @@ fn pretty_print_json<T: serde::Serialize>(data: &T) {
 
 mod pretty_print {
     use crate::client::{
-        FundingStats, KeyPermission, Permission, Ledger, Stat, Wallet, User,
+        FundingStats, KeyPermission, Ledger, Permission, PlatformStatus, Stat, User, Wallet
     };
     use crate::funding::{
-        Candle, FundingBook, FundingBookRaw, FundingCredit, FundingOffer, FundingTrade,
+        Candle, FundingBook, FundingBookRaw, FundingCredit, FundingOffer, FundingTicker, FundingTrade
     };
-    use crate::trading::{TradingBook, TradingBookRaw, TradingOrder, TradingTrade};
+    use crate::trading::{TradingBook, TradingBookRaw, TradingOrder, TradingTicker, TradingTrade};
     use tabled::{builder::Builder, settings::Style};
 
     fn build_and_print(builder: Builder) {
         let mut table = builder.build();
         table.with(Style::rounded());
         println!("{}", table);
+    }
+
+    pub fn print_vec_string(title: &str, vs: &Vec<String>) {
+        let mut builder = Builder::default();
+        builder.push_record([title]);
+        for s in vs {
+            builder.push_record([s]);
+        }
+        build_and_print(builder);
+    }
+
+    pub fn print_platform_status(status: &PlatformStatus) {
+        let mut builder = Builder::default();
+        builder.push_record(["status"]);
+        builder.push_record([status.status.to_string()]);
+        build_and_print(builder);
     }
 
     pub fn print_user_info(user: &User) {
@@ -1265,6 +1281,23 @@ mod pretty_print {
         build_and_print(builder);
     }
 
+    pub fn print_trading_ticker(ticker: &TradingTicker) {
+        let mut builder = Builder::default();
+        builder.push_record(["last-price", &ticker.last_price.to_string()]);
+        builder.push_record(["high", &ticker.high.to_string()]);
+        builder.push_record(["low", &ticker.low.to_string()]);
+        builder.push_record(["volume", &ticker.volume.to_string()]);
+        builder.push_record(["bid", &ticker.bid.to_string()]);
+        builder.push_record(["bid-size", &ticker.bid_size.to_string()]);
+        builder.push_record(["ask", &ticker.ask.to_string()]);
+        builder.push_record(["ask-size", &ticker.ask_size.to_string()]);
+        builder.push_record(["daily-change", &ticker.daily_change.to_string()]);
+        builder.push_record(["daily-change-relative", &ticker.daily_change_relative.to_string()]);
+        let mut table = builder.build();
+        table.with(Style::modern());
+        println!("{table}");
+    }
+
     pub fn print_trading_trade(trades: &Vec<TradingTrade>) {
         let mut builder = Builder::default();
         builder.push_record(["id", "time", "amount", "price"]);
@@ -1351,6 +1384,27 @@ mod pretty_print {
             ]);
         }
         build_and_print(builder);
+    }
+
+    pub fn print_funding_ticker(ticker: &FundingTicker) {
+        let mut builder = Builder::default();
+        builder.push_record(["frr", &ticker.frr.to_string()]);
+        builder.push_record(["frr-available-amount", &ticker.frr_amount_available.to_string()]);
+        builder.push_record(["last-price", &ticker.last_price.to_string()]);
+        builder.push_record(["high", &ticker.high.to_string()]);
+        builder.push_record(["low", &ticker.low.to_string()]);
+        builder.push_record(["volume", &ticker.volume.to_string()]);
+        builder.push_record(["bid", &ticker.bid.to_string()]);
+        builder.push_record(["bid-period", &ticker.bid_period.to_string()]);
+        builder.push_record(["bid-size", &ticker.bid_size.to_string()]);
+        builder.push_record(["ask", &ticker.ask.to_string()]);
+        builder.push_record(["ask-period", &ticker.ask_period.to_string()]);
+        builder.push_record(["ask-size", &ticker.ask_size.to_string()]);
+        builder.push_record(["daily-change", &ticker.daily_change.to_string()]);
+        builder.push_record(["daily-change-perc", &ticker.daily_change_perc.to_string()]);
+        let mut table = builder.build();
+        table.with(Style::modern());
+        println!("{table}");
     }
 
     pub fn print_funding_trade(trades: &Vec<FundingTrade>) {
