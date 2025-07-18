@@ -374,10 +374,8 @@ enum PublicAction {
     /// Get the current status of the platform, “Operative” or “Maintenance”.
     PlatformStatus,
 
-    /// Get derivatives pair status 
-    DerivStatus {
-        keys: String,
-    },
+    /// Get derivatives pair status
+    DerivStatus { keys: String },
 
     /// Get a list of the most recent funding data for the given currency.
     FundingStats {
@@ -403,7 +401,7 @@ enum PublicAction {
             help = "End time for the stats in ISO 8601 format (e.g., 2025-01-01T00:00:00Z)."
         )]
         end: Option<DateTime<Local>>,
-    }
+    },
 }
 
 /// Trading/exchange related utilities
@@ -753,7 +751,7 @@ async fn process_public_action(action: &PublicAction) {
                 )
                 .await
                 .unwrap();
-            pretty_print_json(&stat);
+            pretty_print::print_public_stat(&stat);
         }
         PublicAction::ExRate { from_ccy, to_ccy } => {
             let rate = client
@@ -778,9 +776,17 @@ async fn process_public_action(action: &PublicAction) {
             let status = client.request_deriv_status(keys).await.unwrap();
             pretty_print_json(&status);
         }
-        PublicAction::FundingStats { symbol, limit, start, end } => {
-            let stats = client.request_funding_stats(symbol, limit.clone(), start.clone(), end.clone()).await.unwrap();
-            pretty_print_json(&stats);
+        PublicAction::FundingStats {
+            symbol,
+            limit,
+            start,
+            end,
+        } => {
+            let stats = client
+                .request_funding_stats(symbol, limit.clone(), start.clone(), end.clone())
+                .await
+                .unwrap();
+            pretty_print::print_funding_stats(&stats);
         }
     }
 }
@@ -790,15 +796,15 @@ async fn process_auth_action(action: &AuthAction) {
     match action {
         AuthAction::UserInfo => {
             let result = client.request_user_info().await.unwrap();
-            pretty_print_json(&result);
+            pretty_print::print_user_info(&result);
         }
         AuthAction::Wallets => {
             let wallets = client.request_wallets().await.unwrap();
-            pretty_print_json(&wallets);
+            pretty_print::print_wallet(&wallets);
         }
         AuthAction::KeyPermission => {
             let perm = client.request_key_permission().await.unwrap();
-            pretty_print_json(&perm);
+            pretty_print::print_key_permission(&perm);
         }
         AuthAction::Ledger {
             ccy,
@@ -810,7 +816,7 @@ async fn process_auth_action(action: &AuthAction) {
                 .request_ledger(ccy, *limit, Some(cat.as_str().into()))
                 .await
                 .unwrap();
-            pretty_print_json(&result);
+            pretty_print::print_ledger(&result);
         }
         AuthAction::DepositAddress {
             wallet_type,
@@ -833,11 +839,11 @@ async fn process_funding_action(action: &FundingAction) {
                 .request_funding_book(symbol, (*precision).into())
                 .await
                 .unwrap();
-            pretty_print_json(&book);
+            pretty_print::print_funding_book(&book);
         }
         FundingAction::RawBook { symbol } => {
             let book = get_client().request_funding_book_raw(symbol).await.unwrap();
-            pretty_print_json(&book);
+            pretty_print::print_funding_book_raw(&book);
         }
         FundingAction::Ticker { symbol } => {
             let ticker = get_client().request_funding_ticker(symbol).await.unwrap();
@@ -867,7 +873,7 @@ async fn process_funding_action(action: &FundingAction) {
                 )
                 .await
                 .unwrap();
-            pretty_print_json(&candles);
+            pretty_print::print_candle(&candles);
         }
         FundingAction::Trades {
             symbol,
@@ -879,7 +885,7 @@ async fn process_funding_action(action: &FundingAction) {
                 .request_funding_trades(symbol, Some(*limit), start.clone(), end.clone())
                 .await
                 .unwrap();
-            pretty_print_json(&trades);
+            pretty_print::print_funding_trade(&trades);
         }
         // --- Authenticated actions --- //
         FundingAction::Submit {
@@ -912,14 +918,14 @@ async fn process_funding_action(action: &FundingAction) {
                 .request_funding_offers(symbol)
                 .await
                 .unwrap();
-            pretty_print_json(&offers);
+            pretty_print::print_funding_offer(&offers);
         }
         FundingAction::Credits { symbol } => {
             let credits = get_client_with_key()
                 .request_funding_credits(symbol)
                 .await
                 .unwrap();
-            pretty_print_json(&credits);
+            pretty_print::print_funding_credits(&credits);
         }
         FundingAction::HistOffers {
             symbol,
@@ -931,7 +937,7 @@ async fn process_funding_action(action: &FundingAction) {
                 .request_funding_offers_hist(symbol, *limit, start.clone(), end.clone())
                 .await
                 .unwrap();
-            pretty_print_json(&offers);
+            pretty_print::print_funding_offer(&offers);
         }
         FundingAction::HistCredits {
             symbol,
@@ -943,7 +949,7 @@ async fn process_funding_action(action: &FundingAction) {
                 .request_funding_credits_hist(symbol, *limit, start.clone(), end.clone())
                 .await
                 .unwrap();
-            pretty_print_json(&credits);
+            pretty_print::print_funding_credits(&credits);
         }
     }
 }
@@ -956,11 +962,11 @@ async fn process_trading_action(action: &TradingAction) {
                 .request_trading_book(symbol, (*precision).into())
                 .await
                 .unwrap();
-            pretty_print_json(&book);
+            pretty_print::print_trading_book(&book);
         }
         TradingAction::RawBook { symbol } => {
             let book = get_client().request_trading_book_raw(symbol).await.unwrap();
-            pretty_print_json(&book);
+            pretty_print::print_trading_book_raw(&book);
         }
         TradingAction::Ticker { symbol } => {
             let ticker = get_client().request_trading_ticker(symbol).await.unwrap();
@@ -984,7 +990,7 @@ async fn process_trading_action(action: &TradingAction) {
                 )
                 .await
                 .unwrap();
-            pretty_print_json(&candles);
+            pretty_print::print_candle(&candles);
         }
         TradingAction::Trades {
             symbol,
@@ -996,7 +1002,7 @@ async fn process_trading_action(action: &TradingAction) {
                 .request_trading_trades(symbol, Some(*limit), start.clone(), end.clone())
                 .await
                 .unwrap();
-            pretty_print_json(&trades);
+            pretty_print::print_trading_trade(&trades);
         }
         TradingAction::Orders {
             symbol,
@@ -1013,7 +1019,7 @@ async fn process_trading_action(action: &TradingAction) {
                 )
                 .await
                 .unwrap();
-            pretty_print_json(&orders);
+            pretty_print::print_trading_order(&orders);
         }
         TradingAction::HistOrders {
             symbol,
@@ -1030,7 +1036,7 @@ async fn process_trading_action(action: &TradingAction) {
                 )
                 .await
                 .unwrap();
-            pretty_print_json(&orders);
+            pretty_print::print_trading_order(&orders);
         }
         TradingAction::Submit {
             symbol,
@@ -1063,7 +1069,7 @@ async fn process_trading_action(action: &TradingAction) {
                 )
                 .await
                 .unwrap();
-            pretty_print_json(&orders);
+            pretty_print::print_trading_order(&orders);
         }
         TradingAction::Update {
             id,
@@ -1112,7 +1118,7 @@ async fn process_trading_action(action: &TradingAction) {
                 .cancel_trading_order_all()
                 .await
                 .unwrap();
-            pretty_print_json(&orders);
+            pretty_print::print_trading_order(&orders);
         }
     }
 }
@@ -1121,5 +1127,304 @@ fn pretty_print_json<T: serde::Serialize>(data: &T) {
     match serde_json::to_string_pretty(data) {
         Ok(json) => println!("{}", json),
         Err(e) => eprintln!("Error serializing to JSON: {}", e),
+    }
+}
+
+mod pretty_print {
+    use crate::client::{
+        FundingStats, KeyPermission, Permission, Ledger, Stat, Wallet, User,
+    };
+    use crate::funding::{
+        Candle, FundingBook, FundingBookRaw, FundingCredit, FundingOffer, FundingTrade,
+    };
+    use crate::trading::{TradingBook, TradingBookRaw, TradingOrder, TradingTrade};
+    use tabled::{builder::Builder, settings::Style};
+
+    fn build_and_print(builder: Builder) {
+        let mut table = builder.build();
+        table.with(Style::rounded());
+        println!("{}", table);
+    }
+
+    pub fn print_user_info(user: &User) {
+        let mut builder = Builder::default();
+        builder.push_record(["id".to_string(), user.id.to_string()]);
+        builder.push_record(["email".to_string(), user.email.clone()]);
+        builder.push_record(["email-verified".to_string(), user.email_verified.to_string()]);
+        builder.push_record(["name".to_string(), user.name.clone()]);
+        builder.push_record(["created".to_string(), user.created.to_rfc3339()]);
+        builder.push_record(["verified".to_string(), user.verified.to_string()]);
+        builder.push_record(["verification-level".to_string(), user.verification_level.to_string()]);
+        builder.push_record(["timezone".to_string(), user.timezone.clone()]);
+        builder.push_record(["locale".to_string(), user.locale.clone()]);
+        builder.push_record(["company".to_string(), user.company.clone()]);
+        builder.push_record(["subaccount-type", &user.subaccount_type.clone().map_or(String::new(), |v| v)]);
+        builder.push_record(["master-account-created", &user.master_account_created.map_or(String::new(), |v| v.to_string())]);
+        builder.push_record(["group-id", &user.group_id.map_or(String::new(), |v| v.to_string())]);
+        builder.push_record(["master-account-id", &user.master_account_id.map_or(String::new(), |v| v.to_string())]);
+        builder.push_record(["inherit-master-account-verification", &user.inherit_master_account_verification.map_or(String::new(), |v| v.to_string())]);
+        builder.push_record(["is-group-master", &user.is_group_master.to_string()]);
+        builder.push_record(["group-withdraw-enabled", &user.group_withdraw_enabled.map_or(String::new(), |v| v.to_string())]);
+        builder.push_record(["ppt-enabled", &user.ppt_enabled.clone().map_or(String::new(), |v| v)]);
+        builder.push_record(["merchant-enabled", &user.merchant_enabled.to_string()]);
+        builder.push_record(["competition-enabled", &user.competition_enabled.clone().map_or(String::new(), |v| v)]);
+        builder.push_record(["two-factor-modes", &serde_json::to_string_pretty(&user.two_factor_modes).unwrap()]);
+        builder.push_record(["is-sercurities-master", &user.is_sercurities_master.to_string()]);
+        builder.push_record(["securities-enabled", &user.securities_enabled.map_or(String::new(), |v| v.to_string())]);
+        builder.push_record(["is-securities-investor-accredited", &user.is_securities_investor_accredited.map_or(String::new(), |v| v.to_string())]);
+        builder.push_record(["is-securities-el-salvador", &user.is_securities_el_salvador.map_or(String::new(), |v| v.to_string())]);
+        builder.push_record(["allow-disabled-ctxswitch", &user.allow_disable_ctxswitch.map_or(String::new(), |v| v.to_string())]);
+        builder.push_record(["ctxswitch-disabled", &user.ctxswitch_disabled.to_string()]);
+        builder.push_record(["last-login", &user.last_login.to_rfc3339()]);
+        builder.push_record(["verification-level-submitted", &user.verification_level_submitted.to_string()]);
+        builder.push_record(["comp-countries", &serde_json::to_string_pretty(&user.comp_countries).unwrap()]);
+        builder.push_record(["comp-countries-resid", &serde_json::to_string_pretty(&user.comp_countries_resid).unwrap()]);
+        builder.push_record(["compl-account-type", &user.compl_account_type.clone().map_or(String::new(), |v| v)]);
+        builder.push_record(["is-merchant-enterprise", &user.is_merchant_enterprise.to_string()]);
+
+        let mut table = builder.build();
+        table.with(Style::modern());
+        println!("{table}");
+    }
+
+    pub fn print_key_permission(perm: &KeyPermission) {
+        let mut builder = Builder::default();
+        let format_p = |p: &Permission| {
+            format!("Read: {} / Write: {}", p.read, p.write)
+        };
+        builder.push_record(["account".to_string(), format_p(&perm.account)]);
+        builder.push_record(["orders".to_string(), format_p(&perm.orders)]);
+        builder.push_record(["funding".to_string(), format_p(&perm.funding)]);
+        builder.push_record(["settings".to_string(), format_p(&perm.settings)]);
+        builder.push_record(["wallets".to_string(), format_p(&perm.wallets)]);
+        builder.push_record(["withdraw".to_string(), format_p(&perm.withdraw)]);
+        builder.push_record(["history".to_string(), format_p(&perm.history)]);
+        builder.push_record(["positions".to_string(), format_p(&perm.positions)]);
+        builder.push_record(["ui_withdraw".to_string(), format_p(&perm.ui_withdraw)]);
+        builder.push_record(["bfxpay".to_string(), format_p(&perm.bfxpay)]);
+
+        let mut table = builder.build();
+        table.with(Style::modern());
+        println!("{table}");
+    }
+
+    pub fn print_wallet(wallets: &Vec<Wallet>) {
+        let mut builder = Builder::default();
+        builder.push_record(["ccy", "type", "free", "balance", "unsettled"]);
+        for w in wallets {
+            builder.push_record([
+                w.ccy.clone(),
+                w.typ.clone(),
+                w.free.to_string(),
+                w.balance.to_string(),
+                w.unsettled_amount.to_string(),
+            ]);
+        }
+        build_and_print(builder);
+    }
+
+    pub fn print_ledger(ledgers: &Vec<Ledger>) {
+        let mut builder = Builder::default();
+        builder.push_record(["id", "amount", "balance", "ccy", "time"]);
+        for l in ledgers {
+            builder.push_record([
+                l.id.to_string(),
+                l.amount.to_string(),
+                l.balance.to_string(),
+                l.ccy.clone(),
+                l.time.to_rfc3339(),
+            ]);
+        }
+        build_and_print(builder);
+    }
+
+    pub fn print_trading_order(orders: &Vec<TradingOrder>) {
+        let mut builder = Builder::default();
+        builder.push_record([
+            "id",
+            "symbol",
+            "price",
+            "amount",
+            "order-type",
+            "status",
+            "created",
+            "updated",
+        ]);
+        for o in orders {
+            builder.push_record([
+                o.id.to_string(),
+                o.symbol.clone(),
+                o.price.to_string(),
+                o.amount_orig.to_string(),
+                o.order_type.to_string(),
+                o.status.clone(),
+                o.created.to_rfc3339(),
+                o.updated.to_rfc3339(),
+            ]);
+        }
+        build_and_print(builder);
+    }
+
+    pub fn print_trading_trade(trades: &Vec<TradingTrade>) {
+        let mut builder = Builder::default();
+        builder.push_record(["id", "time", "amount", "price"]);
+        for t in trades {
+            builder.push_record([
+                t.id.to_string(),
+                t.time.to_rfc3339(),
+                t.amount.to_string(),
+                t.price.to_string(),
+            ]);
+        }
+        build_and_print(builder);
+    }
+
+    pub fn print_trading_book(books: &Vec<TradingBook>) {
+        let mut builder = Builder::default();
+        builder.push_record(["price", "count", "amount"]);
+        for b in books {
+            builder.push_record([
+                b.price.to_string(),
+                b.count.to_string(),
+                b.amount.to_string(),
+            ]);
+        }
+        build_and_print(builder);
+    }
+
+    pub fn print_trading_book_raw(books: &Vec<TradingBookRaw>) {
+        let mut builder = Builder::default();
+        builder.push_record(["order-id", "price", "amount"]);
+        for b in books {
+            builder.push_record([
+                b.order_id.to_string(),
+                b.price.to_string(),
+                b.amount.to_string(),
+            ]);
+        }
+        build_and_print(builder);
+    }
+
+    pub fn print_funding_credits(orders: &Vec<FundingCredit>) {
+        let mut builder = Builder::default();
+        builder.push_record(["id", "amount", "rate", "period", "pair", "created"]);
+        for o in orders {
+            builder.push_record([
+                o.id.to_string(),
+                o.amount.to_string(),
+                o.rate.to_string(),
+                o.period.to_string(),
+                o.pair.clone(),
+                o.created.to_rfc3339(),
+            ]);
+        }
+        build_and_print(builder);
+    }
+
+    pub fn print_funding_offer(orders: &Vec<FundingOffer>) {
+        let mut builder = Builder::default();
+        builder.push_record(["id", "amount", "rate", "period", "status", "created"]);
+        for o in orders {
+            builder.push_record([
+                o.id.to_string(),
+                o.amount_ori.to_string(),
+                o.rate.to_string(),
+                o.period.to_string(),
+                o.status.to_string(),
+                o.created.to_rfc3339(),
+            ]);
+        }
+        build_and_print(builder);
+    }
+
+    pub fn print_candle(candles: &Vec<Candle>) {
+        let mut builder = Builder::default();
+        builder.push_record(["time", "open", "close", "high", "low", "volume"]);
+        for c in candles {
+            builder.push_record([
+                c.time.to_rfc3339(),
+                c.open.to_string(),
+                c.close.to_string(),
+                c.high.to_string(),
+                c.low.to_string(),
+                c.volume.to_string(),
+            ]);
+        }
+        build_and_print(builder);
+    }
+
+    pub fn print_funding_trade(trades: &Vec<FundingTrade>) {
+        let mut builder = Builder::default();
+        builder.push_record(["id", "amount", "rate", "period", "created"]);
+        for t in trades {
+            builder.push_record([
+                t.id.to_string(),
+                t.amount.to_string(),
+                t.rate.to_string(),
+                t.period.to_string(),
+                t.created.to_rfc3339(),
+            ]);
+        }
+        build_and_print(builder);
+    }
+
+    pub fn print_funding_book(books: &Vec<FundingBook>) {
+        let mut builder = Builder::default();
+        builder.push_record(["rate", "amount", "period", "count"]);
+        for b in books {
+            builder.push_record([
+                b.rate.to_string(),
+                b.amount.to_string(),
+                b.period.to_string(),
+                b.count.to_string(),
+            ]);
+        }
+        build_and_print(builder);
+    }
+
+    pub fn print_funding_book_raw(books: &Vec<FundingBookRaw>) {
+        let mut builder = Builder::default();
+        builder.push_record(["id", "rate", "amount", "period"]);
+        for b in books {
+            builder.push_record([
+                b.id.to_string(),
+                b.rate.to_string(),
+                b.amount.to_string(),
+                b.period.to_string(),
+            ]);
+        }
+        build_and_print(builder);
+    }
+
+    pub fn print_public_stat(stat: &Vec<Stat>) {
+        let mut builder = Builder::default();
+        builder.push_record(["time", "value"]);
+        for s in stat {
+            builder.push_record([s.time.to_rfc3339(), s.value.to_string()]);
+        }
+        build_and_print(builder);
+    }
+
+    pub fn print_funding_stats(stats: &Vec<FundingStats>) {
+        let mut builder = Builder::default();
+        builder.push_record([
+            "time",
+            "frr",
+            "avg_preiod",
+            "amount",
+            "amount_used",
+            "below_threshold",
+        ]);
+        for s in stats {
+            builder.push_record([
+                s.time.to_rfc3339(),
+                s.frr.to_string(),
+                s.avg_period.to_string(),
+                s.funding_amount.to_string(),
+                s.funding_amount_used.to_string(),
+                s.funding_below_threshold.to_string(),
+            ]);
+        }
+        build_and_print(builder);
     }
 }

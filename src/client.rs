@@ -212,10 +212,10 @@ pub struct KeyPermission {
     pub positions: Permission,
     pub ui_withdraw: Permission,
     pub bfxpay: Permission,
-    pub eaas_agreement: Permission,
-    pub eaas_withdraw: Permission,
-    pub eaas_deposit: Permission,
-    pub eaas_brokerage: Permission,
+    pub eaas_agreement: Option<Permission>,
+    pub eaas_withdraw: Option<Permission>,
+    pub eaas_deposit: Option<Permission>,
+    pub eaas_brokerage: Option<Permission>,
 }
 
 #[derive(Serialize, Deserialize)]
